@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Phase Transformations, Interactively</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#EDF1F4; --surface:#F8FAFC; --ink:#15202B; --muted:#56636F; --rule:#C5CFD7; --band:#E2E8ED;
+  --solid:#7B3FB0; --liq:#2B67D1; --gas:#C8781A; --acc:#0F7C7B; --hot:#C4402B; --res:#8B98A4;
+  --serif:"Newsreader",Georgia,"Times New Roman",serif;
+  --sans:"Instrument Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E151C; --surface:#141D26; --ink:#E3E9EE; --muted:#97A4B0; --rule:#2B3743; --band:#1B2631;
+    --solid:#B392F0; --liq:#6E9FF2; --gas:#F0B45C; --acc:#4FC9C4; --hot:#FF7A66; --res:#5B6976;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E151C; --surface:#141D26; --ink:#E3E9EE; --muted:#97A4B0; --rule:#2B3743; --band:#1B2631;
+  --solid:#B392F0; --liq:#6E9FF2; --gas:#F0B45C; --acc:#4FC9C4; --hot:#FF7A66; --res:#5B6976;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--serif);font-size:1.1rem;line-height:1.62;-webkit-font-smoothing:antialiased}
+img,canvas{max-width:100%}
+a{color:var(--acc)}
+:focus-visible{outline:2px solid var(--acc);outline-offset:3px;border-radius:2px}
+.wrap{max-width:1080px;margin:0 auto;padding:0 clamp(1rem,4vw,2.5rem)}
+.prose{max-width:40rem}
+
+header.hero{padding:clamp(2.5rem,7vw,5rem) 0 1.5rem}
+.credit{font-family:var(--sans);font-size:.9rem;color:var(--muted);margin:0 0 1.25rem}
+h1{font-weight:500;font-size:clamp(2.5rem,7.5vw,5.25rem);line-height:.98;letter-spacing:-.025em;margin:0 0 1.25rem;max-width:12ch}
+.lede{font-size:clamp(1.15rem,2.2vw,1.35rem);max-width:37rem;margin:0}
+
+section{padding:clamp(2.5rem,6vw,4rem) 0;border-top:1px solid var(--rule)}
+section:first-of-type{border-top:0;padding-top:1rem}
+h2{font-weight:500;font-size:clamp(1.7rem,3.5vw,2.35rem);line-height:1.1;letter-spacing:-.015em;margin:0 0 1rem}
+h3{font-family:var(--sans);font-weight:600;font-size:1rem;margin:1.75rem 0 .5rem}
+p{margin:0 0 1rem}
+.note{font-size:.95rem;color:var(--muted)}
+
+.eq{display:block;text-align:center;margin:1.25rem 0;overflow-x:auto;overflow-y:hidden;padding:.25rem 0}
+.eq.multi{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;column-gap:2.2em;row-gap:.65rem}
+.boxed.multi{display:inline-flex;flex-wrap:wrap;justify-content:center;align-items:center;column-gap:2em;row-gap:.6rem;max-width:100%}
+.eqp{max-width:100%}
+.multi.chain{column-gap:.35em}
+mjx-container{color:inherit}
+mjx-container[display="true"]{margin:0 !important}
+.stats mjx-container,.legend mjx-container,.cap mjx-container,.ctl small mjx-container{font-size:105%}
+.ctl output mjx-container{font-size:95%}
+.boxed{display:inline-block;border:1.5px solid var(--acc);padding:.5rem 1rem;border-radius:3px}
+
+.fig{display:grid;grid-template-columns:minmax(0,1fr) 17.5rem;gap:1.5rem;align-items:start;margin-top:1.5rem}
+@media (max-width:820px){.fig{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:1rem}
+.canvas-holder{background:var(--surface);border:1px solid var(--rule);border-radius:6px;overflow:hidden}
+canvas{display:block;width:100%}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;margin-top:.75rem}
+@media (max-width:700px){.two{grid-template-columns:1fr}}
+
+.ctl{font-family:var(--sans);font-size:.9rem;margin-bottom:1.1rem}
+.ctl:last-child{margin-bottom:0}
+.ctl label{display:flex;justify-content:space-between;align-items:baseline;gap:.75rem;font-weight:500;margin-bottom:.3rem}
+.ctl .lt{flex:1 1 auto}
+.ctl .lbl{display:block;font-weight:500;margin-bottom:.4rem}
+.ctl output{flex:0 0 auto;white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--muted);font-weight:400}
+.ctl small{display:block;color:var(--muted);line-height:1.4;margin-top:.25rem}
+input[type=range]{width:100%;accent-color:var(--acc);margin:0}
+.btns{display:flex;flex-wrap:wrap;gap:.5rem}
+button{font-family:var(--sans);font-size:.88rem;font-weight:500;color:var(--ink);background:transparent;border:1px solid var(--rule);border-radius:4px;padding:.45rem .8rem;cursor:pointer}
+button:hover{border-color:var(--ink)}
+button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.ctl label.check{display:flex;justify-content:flex-start;align-items:center;gap:.5rem;font-weight:500;cursor:pointer}
+.check input{width:1rem;height:1rem;margin:0;accent-color:var(--acc)}
+
+.stats{font-family:var(--sans);font-size:.9rem;display:grid;grid-template-columns:auto auto;gap:.35rem 1rem;margin:0}
+.stats dt{color:var(--muted)}
+.stats dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;font-weight:500;white-space:nowrap}
+.stats .sep{grid-column:1/-1;border-top:1px solid var(--rule);margin:.3rem 0}
+.legend{font-family:var(--sans);font-size:.85rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:1rem;margin:.6rem 0 0;align-items:center}
+.swatch{display:inline-block;width:.75rem;height:.75rem;border-radius:2px;vertical-align:-1px;margin-right:.35rem}
+.swatch.line{height:3px;width:1.1rem;vertical-align:3px;border-radius:0}
+.swatch.dash{height:0;width:1.1rem;vertical-align:3px;border-radius:0;border-top:3px dashed}
+.swatch.dot{border-radius:50%}
+.cap{font-family:var(--sans);font-size:.85rem;color:var(--muted);margin:.5rem .25rem 0}
+.verdict{font-family:var(--sans);font-size:1rem;font-weight:500;margin:.85rem 0 0;max-width:40rem}
+.big{font-size:clamp(2rem,5vw,2.8rem);line-height:1;font-weight:500;letter-spacing:-.02em;margin:.1rem 0 .3rem}
+
+footer{border-top:1px solid var(--rule);padding:2rem 0 3rem;font-family:var(--sans);font-size:.9rem;color:var(--muted)}
+footer p{margin:0 0 .4rem}
+</style>
+<script>
+window.MathJax = {
+  tex: { inlineMath: [['\\(','\\)']], displayMath: [['\\[','\\]']] },
+  svg: { fontCache: 'global' },
+  options: { enableMenu: false }
+};
+</script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <p class="credit">An interactive demo created by Claude Opus 5.5, based on the lecture notes by Sang Hoon Lee (Statistical Physics 1, Chapter 5, Free Energy and Chemical Thermodynamics, Section 5.3)</p>
+  <h1>Phase Transformations</h1>
+  <p class="lede">Ice, water, and steam are one substance in three forms. Change the temperature or pressure only a little, and its properties can change abruptly. The Gibbs free energy decides which form wins.</p>
+</header>
+
+<!-- ============ PHASE DIAGRAMS ============ -->
+<section id="diagrams" aria-labelledby="h-diag">
+  <h2 id="h-diag">Phases and phase diagrams</h2>
+  <div class="prose">
+    <p>A <strong>phase transformation</strong> (or phase transition) is a discontinuous change in the properties of a substance as its environment is changed only infinitesimally: mathematically, a derivative that diverges or fails to exist. The different forms, such as ice, water, and steam, are its <strong>phases</strong>, and the variables that select among them, such as temperature and pressure, are <strong>control parameters</strong>. Steam condenses either by lowering the temperature or by raising the pressure. A <strong>phase diagram</strong> shows the most stable phase in each region (metastable phases can still exist for a while); its lines are where two phases coexist in equilibrium, and at the <strong>triple point</strong> all three do. The liquid–gas line is the <strong>vapor pressure</strong>, ending at the <strong>critical point</strong>, beyond which liquid and gas are no longer distinct. Pick a temperature and pressure:</p>
+  </div>
+  <div class="fig">
+    <div>
+      <div class="canvas-holder"><canvas id="pdCanvas" style="cursor:crosshair" aria-label="Phase diagram on a logarithmic pressure axis; click to choose a point"></canvas></div>
+      <p class="verdict" id="pdV"></p>
+    </div>
+    <div class="panel">
+      <div class="ctl"><span class="lbl">Substance</span>
+        <div class="btns"><button type="button" data-sub="h2o" aria-pressed="true">Water</button><button type="button" data-sub="co2">Carbon dioxide</button></div>
+      </div>
+      <div class="ctl">
+        <label for="pdT"><span class="lt">Temperature</span> <output id="pdTOut"></output></label>
+        <input type="range" id="pdT" min="-130" max="420" step="0.5" value="25">
+      </div>
+      <div class="ctl">
+        <label for="pdP"><span class="lt">Pressure</span> <output id="pdPOut"></output></label>
+        <input type="range" id="pdP" min="-4" max="3" step="0.01" value="0">
+      </div>
+      <dl class="stats" id="pdStats"></dl>
+      <p class="cap" style="margin:.75rem 0 0">Vapor pressures from the textbook’s tables; the melting lines are sketched from their slopes. Click the diagram to jump to a point.</p>
+    </div>
+  </div>
+  <div class="prose" style="margin-top:1.5rem">
+    <p>Water’s melting line slopes backward: raising the pressure <em>lowers</em> the melting point, because ice is less dense than water. Most substances are like carbon dioxide instead, where pressure raises the melting point; at atmospheric pressure CO<sub>2</sub> has no liquid at all, and solid “dry ice” sublimates directly. Helium is stranger still: <sup>4</sup>He stays liquid down to absolute zero unless compressed to about 25 bar, and below 2.2 K it becomes a superfluid.</p>
+  </div>
+
+  <h3>Diamond and graphite</h3>
+  <div class="prose">
+    <p>Elemental carbon has two familiar solid phases. At ordinary pressure graphite is more stable, so diamonds slowly (very slowly) turn into graphite. Since \((\partial G/\partial P)_{T,N} = V\), the denser diamond’s \(G\) rises more slowly with pressure, and above about 15 kbar diamond wins; since \((\partial G/\partial T)_{P,N} = -S\), graphite’s larger entropy pushes that crossover higher as the temperature rises.</p>
+  </div>
+  <div class="fig">
+    <div>
+      <div class="canvas-holder"><canvas id="dgCanvas" aria-label="Gibbs free energy of diamond and graphite versus pressure"></canvas></div>
+      <div class="legend">
+        <span><span class="swatch line" style="background:var(--res)"></span>Graphite</span>
+        <span><span class="swatch line" style="background:var(--acc)"></span>Diamond</span>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ctl">
+        <label for="dgT"><span class="lt">Temperature</span> <output id="dgTOut"></output></label>
+        <input type="range" id="dgT" min="298" max="1200" step="1" value="298">
+      </div>
+      <dl class="stats">
+        <dt>Diamond becomes stable above</dt><dd id="dgP">–</dd>
+      </dl>
+      <p class="cap" style="margin:.75rem 0 0">Per mole, relative to graphite at 1 bar and 298 K: \(\Delta G = 2.9\) kJ, molar volumes 5.31 and 3.42 cm³, entropies 5.74 and 2.38 J/K, treated as constant.</p>
+    </div>
+  </div>
+
+  <h3>How abrupt?</h3>
+  <div class="prose">
+    <p>Transitions were long classified by their abruptness. Melting and boiling are “first-order,” since the first derivatives of \(G\), namely \(S\) and \(V\), jump at the boundary. Gentler transitions, such as at a critical point or helium’s superfluid transition, were called “second-order” and so on, by how many derivatives it takes to reach a discontinuity. Today they are simply called <strong>continuous</strong>. Magnetic systems show both: in a type-I superconductor, a field above \(B_c\) destroys superconductivity (for lead, \(T_c = 7.2\) K and \(B_c = 0.08\) T); in a ferromagnet, flipping the field across zero flips the magnetization, a first-order jump, until the Curie temperature, a critical point above which it becomes continuous.</p>
+  </div>
+  <div class="two">
+    <div class="canvas-holder"><canvas id="scCanvas" aria-label="Phase diagram of a type-I superconductor"></canvas></div>
+    <div class="canvas-holder"><canvas id="fmCanvas" aria-label="Phase diagram of a ferromagnet"></canvas></div>
+  </div>
+</section>
+
+<!-- ============ CLAUSIUS-CLAPEYRON ============ -->
+<section id="cc" aria-labelledby="h-cc">
+  <h2 id="h-cc">The Clausius–Clapeyron relation</h2>
+  <div class="prose">
+    <p>On a phase boundary, the liquid and gas are in diffusive equilibrium, so their Gibbs free energies (per molecule, their chemical potentials) are equal, and must stay equal as you move along it: \(dG_l = dG_g\), or \(-S_l\,dT + V_l\,dP = -S_g\,dT + V_g\,dP\). With \(S_g - S_l = L/T\), the latent heat,</p>
+    <div class="eq"><span class="boxed">\( \displaystyle \frac{dP}{dT} = \frac{L}{T\,\Delta V} \)</span></div>
+    <p>A large entropy change means a small temperature change shifts the equilibrium a lot: a steep curve. A large volume change makes it shallow. For water at 100 °C, \(dP/dT \approx 3.6\) kPa/K; for melting ice, \(\Delta V < 0\) and \(dP/dT \approx -135\) bar/K, the backward-sloping line above. Neglecting the condensed phase’s volume, treating the vapor as an ideal gas, and taking \(L\) constant gives the <strong>vapor pressure equation</strong> (Problem 5.35), for one mole:</p>
+    <div class="eq multi"><span class="eqp">\( \displaystyle \frac{dP}{dT} \approx \frac{L}{T(RT/P)} \)</span><span class="eqp">\( \displaystyle \Longrightarrow\; P = (\text{constant})\times e^{-L/RT} \)</span></div>
+    <p>Test it on water’s measured vapor pressures: on a plot of \(\ln P\) against \(1/T\) it is a straight line of slope \(-L/R\).</p>
+  </div>
+  <div class="fig">
+    <div>
+      <div class="canvas-holder"><canvas id="vpCanvas" aria-label="Logarithm of water's vapor pressure versus inverse temperature, with the vapor pressure equation"></canvas></div>
+      <div class="legend">
+        <span><span class="swatch dot" style="background:var(--liq)"></span>Measured, liquid–gas</span>
+        <span><span class="swatch line" style="background:var(--hot)"></span>\(P \propto e^{-L/RT}\) through 100 °C</span>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ctl">
+        <label for="vpL"><span class="lt">Latent heat \(L\)</span> <output id="vpLOut"></output></label>
+        <input type="range" id="vpL" min="25" max="55" step="0.1" value="40.7">
+        <small>The measured value at 100 °C is 40.7 kJ/mol; it falls toward zero at the critical point.</small>
+      </div>
+      <dl class="stats">
+        <dt>Best straight line, 0 to 200 °C</dt><dd id="vpFit">–</dd>
+      </dl>
+      <p class="cap" style="margin:.75rem 0 0">Use the formula only when its assumptions hold: far from the critical point, where \(L\) changes and the vapor is no longer dilute.</p>
+    </div>
+  </div>
+  <div class="prose" style="margin-top:1.5rem">
+    <p>For a magnetic system at constant \(T\) and external field \(\mathcal{H}\), the quantity minimized is \(G_m\) with \(dG_m = -S\,dT - \mu_0M\,d\mathcal{H}\), giving the analogue (Problem 5.47)</p>
+    <div class="eq">\[ \frac{d\mathcal{H}}{dT} = -\frac{S_{\text{II}} - S_{\text{I}}}{\mu_0(M_{\text{II}} - M_{\text{I}})} \]</div>
+    <p>For the ferromagnet, the boundary is flat because up and down have equal entropy by symmetry. For the superconductor, which expels the field (the Meissner effect, \(M_{\text{II}} \propto -\mathcal{H} < 0\)), the negative slope means the superconducting phase always has less entropy than the normal phase, except at \(T = 0\), where both vanish by the third law and the boundary is flat.</p>
+  </div>
+</section>
+
+<!-- ============ VAN DER WAALS ============ -->
+<section id="vdw" aria-labelledby="h-vdw">
+  <h2 id="h-vdw">The van der Waals model</h2>
+  <div class="prose">
+    <p>An ideal gas never changes phase. The <strong>van der Waals equation</strong> adds molecular interactions approximately: molecules repel at contact, so each takes up volume \(b\); and they attract when close but not touching, giving a potential energy \(-aN^2/V\) and an extra (negative) pressure \(-aN^2/V^2\):</p>
+    <div class="eq"><span class="boxed">\( \displaystyle \left(P + \frac{aN^2}{V^2}\right)(V - Nb) = Nk_{\mathrm{B}}T \)</span></div>
+    <p>Below a certain temperature its isotherms develop a wiggle where compressing the fluid would <em>lower</em> its pressure, which is unstable. The true equilibrium is decided by the Gibbs free energy: from \((\partial G/\partial V)_{T} = V(\partial P/\partial V)_T\),</p>
+    <div class="eq multi chain"><span class="eqp">\( \displaystyle G = -Nk_{\mathrm{B}}T\ln(V - Nb) \)</span><span class="eqp">\( \displaystyle + \frac{(Nk_{\mathrm{B}}T)(Nb)}{V - Nb} \)</span><span class="eqp">\( \displaystyle - \frac{2aN^2}{V} + c(T) \)</span></div>
+    <p>For pressures where the isotherm gives three volumes, \(G(P)\) has three branches forming a triangular loop, and the system takes the lowest: gas at low pressure, liquid at high, jumping between them where the branches cross. Going around the loop, \(\oint dG = \oint V\,dP = 0\), so the transition pressure is where the two shaded areas are equal: the <strong>Maxwell construction</strong>. In <strong>reduced variables</strong> \(t = T/T_c\), \(p = P/P_c\), \(v = V/V_c\), the constants disappear (Problem 5.51):</p>
+    <div class="eq multi"><span class="eqp">\( \displaystyle p = \frac{8t}{3v - 1} - \frac{3}{v^2}, \)</span><span class="eqp">\( \displaystyle V_c = 3Nb,\ \ P_c = \frac{1}{27}\frac{a}{b^2},\ \ k_{\mathrm{B}}T_c = \frac{8}{27}\frac{a}{b} \)</span></div>
+    <p>where the <strong>critical point</strong>, at which liquid and gas become identical, is where \(\partial P/\partial V = \partial^2P/\partial V^2 = 0\) (Problem 5.48).</p>
+  </div>
+  <div class="fig">
+    <div>
+      <div class="canvas-holder"><canvas id="isoCanvas" aria-label="Van der Waals isotherm with the Maxwell construction"></canvas></div>
+      <div class="two">
+        <div class="canvas-holder"><canvas id="gpCanvas" aria-label="Gibbs free energy versus pressure along the isotherm"></canvas></div>
+        <div class="canvas-holder"><canvas id="ptCanvas" aria-label="The liquid-gas phase boundary of the van der Waals fluid"></canvas></div>
+      </div>
+      <p class="cap">Left: \(G\) against \(p\) along the isotherm; the stable branch is the lowest. Right: the vapor-pressure curve, ending at the critical point.</p>
+    </div>
+    <div class="panel">
+      <div class="ctl">
+        <label for="vT"><span class="lt">\(T/T_c\)</span> <output id="vTOut"></output></label>
+        <input type="range" id="vT" min="0.80" max="1.15" step="0.005" value="0.9">
+      </div>
+      <div class="ctl"><label class="check"><input type="checkbox" id="vMx" checked> Maxwell construction</label></div>
+      <dl class="stats">
+        <dt>Vapor pressure \(P/P_c\)</dt><dd id="vP">–</dd>
+        <dt>Liquid volume \(V_l/V_c\)</dt><dd id="vVl">–</dd>
+        <dt>Gas volume \(V_g/V_c\)</dt><dd id="vVg">–</dd>
+        <dt class="sep"></dt>
+        <dt>Latent heat \(L/Nk_{\mathrm{B}}T_c\)</dt><dd id="vL">–</dd>
+      </dl>
+      <p class="cap" style="margin:.75rem 0 0">Unstable states are dashed. Above \(T_c\) the isotherm decreases monotonically: no phase transformation. The latent heat follows from Clausius–Clapeyron with the computed \(\Delta V\) and slope.</p>
+    </div>
+  </div>
+  <p class="prose note" style="margin-top:1.25rem">Very simple, still crude, yet the van der Waals equation predicts the important qualitative features of real fluids: the liquid–gas transformation, the general shape of the phase boundary, and even the critical point.</p>
+</section>
+
+<!-- ============ CRITICAL EXPONENTS ============ -->
+<section id="critical" aria-labelledby="h-crit">
+  <h2 id="h-crit">Critical exponents and power laws</h2>
+  <div class="prose">
+    <p>Near the critical point, expanding the reduced equation about \(v = 1\) gives (Problem 5.55)</p>
+    <div class="eq">\[ p \approx (4t - 3) - 6(t-1)(v-1) - \tfrac32(v-1)^3 \]</div>
+    <p>From it, the boundary’s slope at the critical point is \(dP/dT = 4P_c/T_c\), and the liquid–gas volume difference shrinks as \(V_g - V_l \propto (T_c - T)^{\beta}\) with \(\beta = \tfrac12\) (experiments find a universal value of about \(\tfrac13\)), so the latent heat vanishes as \(L \approx 6Nk_{\mathrm{B}}T_c\sqrt{1 - T/T_c}\). The critical isotherm is \(P - P_c \propto (V - V_c)^{\delta}\) with \(\delta = 3\) (experiments: about 4 or 5), and the compressibility diverges as \((T - T_c)^{-\gamma}\) from above and \((T_c - T)^{-\gamma'}\) from below with \(\gamma = \gamma' = 1\). These <strong>critical exponents</strong> express a general pattern near continuous transitions:</p>
+    <div class="eq"><span class="boxed">\( \displaystyle \text{order parameter} \propto \left|\,x - x_c\,\right|^{\,\text{exponent}} \)</span></div>
+    <p>with \(x\) a control parameter and \(x_c\) its value at the critical point.</p>
+    <p>where the order parameter may be an energy, volume, magnetization, susceptibility, or heat capacity, and the control parameter a temperature, pressure, or field. A power law \(y \propto x^\alpha\) is <strong>scale-invariant</strong>: rescaling \(x \to ax\) only rescales \(y\). On a log–log plot it is a straight line, so you can measure the exponent from the van der Waals model directly:</p>
+  </div>
+  <div class="fig">
+    <div>
+      <div class="canvas-holder"><canvas id="llCanvas" aria-label="Log-log plot of the liquid-gas volume difference versus distance from the critical temperature"></canvas></div>
+      <div class="legend">
+        <span><span class="swatch dot" style="background:var(--acc)"></span>\(\Delta v\) from the Maxwell construction</span>
+        <span><span class="swatch dash" style="border-color:var(--hot)"></span>\(4(1-t)^{1/2}\)</span>
+      </div>
+    </div>
+    <div class="panel">
+      <dl class="stats">
+        <dt>Measured slope, closest points</dt><dd id="llS">–</dd>
+        <dt>Van der Waals prediction, \(\beta\)</dt><dd>0.5</dd>
+        <dt>Real fluids</dt><dd>≈ 0.33</dd>
+      </dl>
+      <p class="cap" style="margin:.75rem 0 0">Far from \(T_c\) the points bend away from the line: the power law holds only near the critical point. The mismatch with experiment comes from the model’s mean-field treatment of interactions, which ignores fluctuations.</p>
+    </div>
+  </div>
+  <div class="prose" style="margin-top:1.5rem">
+    <p>Why real exponents are universal, the same for fluids and magnets with very different microscopic physics, was explained by the renormalization group, building on Leo Kadanoff’s block spins; Kenneth G. Wilson received the 1982 Nobel Prize in Physics “for his theory for critical phenomena in connection with phase transitions.” Phase transitions have become a model for complex systems in general: global behavior that is similar despite very different local interactions. But a word of caution: a straight line on a log–log plot is not proof of a power law, and many reported ones lack statistical support (M. P. H. Stumpf and M. A. Porter, “Critical Truths About Power Laws,” <i>Science</i> 335, 665 (2012)).</p>
+  </div>
+</section>
+
+<!-- ============ CONCLUSION ============ -->
+<section id="end" aria-labelledby="h-end">
+  <h2 id="h-end">The end of the beginning</h2>
+  <div class="prose">
+    <p>This concludes Statistical Physics 1. Starting from temperature and energy, the course counted microstates, defined entropy as the logarithm of their number, and found that temperature, pressure, and chemical potential are all derivatives of it. Engines met their Carnot limit, the free energies took over when systems touch their surroundings, and here the same free energies decided between ice, water, and steam. Along the way, three model systems, the two-state paramagnet, the Einstein solid, and the ideal gas, showed how the laws of microscopic physics turn into measurable thermodynamics, and the van der Waals fluid showed how even a crude model of interactions can produce a phase transformation and a critical point.</p>
+  </div>
+</section>
+</div>
+
+<footer>
+  <div class="wrap">
+    <p>Created by Claude Opus 5.5, based on the lecture notes by Sang Hoon Lee (Statistical Physics 1, Chapter 5, Section 5.3, with Problems 5.35, 5.47, 5.48, 5.51 and 5.55).</p>
+    <p>Vapor-pressure data from the textbook’s tables (Keenan et al. 1978; Lide 1994; Reynolds 1979). Equations typeset with MathJax.</p>
+  </div>
+</footer>
+
+<script>
+(function(){
+"use strict";
+const $ = id => document.getElementById(id);
+let C = {};
+function readColors(){
+  const cs = getComputedStyle(document.documentElement);
+  ['bg','surface','ink','muted','rule','band','solid','liq','gas','acc','hot','res'].forEach(k => C[k] = cs.getPropertyValue('--'+k).trim());
+}
+readColors();
+const SANS = '"Instrument Sans", system-ui, sans-serif';
+const SERIF = '"Newsreader", Georgia, serif';
+function fit(cv, LW, LH){
+  const w = cv.parentElement.clientWidth || LW, hgt = w*LH/LW;
+  cv.style.height = hgt + 'px';
+  const d = window.devicePixelRatio || 1;
+  cv.width = Math.round(w*d); cv.height = Math.round(hgt*d);
+  const ctx = cv.getContext('2d'); const s = w*d/LW;
+  ctx.setTransform(s,0,0,s,0,0);
+  return ctx;
+}
+function rich(c, x, y, size, parts, align){
+  c.save(); c.textAlign = 'left';
+  const fontOf = st => st==='i' ? 'italic '+size+'px '+SERIF : st==='isub' ? 'italic '+(size*0.7)+'px '+SERIF : (st==='sub'||st==='sup') ? (size*0.7)+'px '+SERIF : st==='s' ? (size*0.88)+'px '+SANS : size+'px '+SERIF;
+  const widths = parts.map(([t,st]) => { c.font = fontOf(st); return c.measureText(t).width; });
+  const total = widths.reduce((a,b)=>a+b,0);
+  let cx = align==='center' ? x-total/2 : align==='right' ? x-total : x;
+  parts.forEach(([t,st],i) => { c.font = fontOf(st); const dy = (st==='sub'||st==='isub') ? size*0.25 : st==='sup' ? -size*0.38 : 0; c.fillText(t, cx, y+dy); cx += widths[i]; });
+  c.restore(); return total;
+}
+const signed = (x,d) => (x<0 && Math.abs(x).toFixed(d) !== (0).toFixed(d) ? '−' : '') + Math.abs(x).toFixed(d);
+function axes(c, W, H, box, xr, yr, xt, yt, xlab, ylab, xfmt, yfmt){
+  const [L,T,Rr,B] = box;
+  c.clearRect(0,0,W,H); c.fillStyle=C.surface; c.fillRect(0,0,W,H);
+  const X = v => L + (v-xr[0])/(xr[1]-xr[0])*(W-L-Rr), Y = v => H-B - (v-yr[0])/(yr[1]-yr[0])*(H-T-B);
+  c.font='12px '+SANS; c.fillStyle=C.muted; c.textAlign='center';
+  xt.forEach(v => { c.strokeStyle = C.band; c.lineWidth=1; c.beginPath(); c.moveTo(X(v),T); c.lineTo(X(v),H-B); c.stroke(); c.fillText(xfmt ? xfmt(v) : (v<0?'−'+Math.abs(v):String(v)), X(v), H-B+16); });
+  c.textAlign='right'; yt.forEach(v => { c.strokeStyle = C.band; c.beginPath(); c.moveTo(L,Y(v)); c.lineTo(W-Rr,Y(v)); c.stroke(); c.fillText(yfmt ? yfmt(v) : (v<0?'−'+Math.abs(v):String(v)), L-6, Y(v)+4); });
+  c.fillStyle=C.muted; if (xlab) rich(c, W-Rr-2, H-8, 14, xlab, 'right');
+  if (ylab){ c.save(); c.globalAlpha=0.85; c.fillStyle=C.surface; c.fillRect(L+2, T-2, 170, 20); c.restore(); c.fillStyle=C.muted; rich(c, L+6, T+12, 14, ylab, 'left'); }
+  c.strokeStyle=C.muted; c.lineWidth=1; c.beginPath(); c.moveTo(L,T); c.lineTo(L,H-B); c.lineTo(W-Rr,H-B); c.stroke();
+  return {X, Y};
+}
+const pow10 = e => e===0 ? '1' : e===1 ? '10' : '10' + String(e).replace('-','⁻').replace(/\d/g, d => '⁰¹²³⁴⁵⁶⁷⁸⁹'[d]);
+
+/* ================= PHASE DIAGRAMS (H2O, CO2) ================= */
+const SUBS = {
+  h2o: {name:'Water', solidGas:[[-40,0.00013],[-20,0.00103],[0,0.00611],[0.01,0.00612]], liqGas:[[0.01,0.00612],[25,0.0317],[50,0.1234],[100,1.013],[150,4.757],[200,15.54],[250,39.74],[300,85.84],[350,165.2],[374,220.6]], triple:[0.01,0.00612], crit:[374,220.6], meltSlope:-0.0074, Tr:[-60,420], phases:['Ice','Water','Steam']},
+  co2: {name:'Carbon dioxide', solidGas:[[-120,0.0124],[-100,0.135],[-80,0.889],[-78.6,1.0],[-60,4.11],[-56.6,5.18]], liqGas:[[-56.6,5.18],[-40,10.07],[-20,19.72],[0,34.85],[20,57.2],[31,73.8]], triple:[-56.6,5.18], crit:[31,73.8], meltSlope:0.017, Tr:[-130,60], phases:['Dry ice (solid)','Liquid CO₂','CO₂ gas']}
+};
+let sub = 'h2o';
+const pdOff = document.createElement('canvas');
+function interpLog(tab, T){ // log-linear interpolation of pressure in T (extrapolates with end slopes)
+  let i = 0; while (i < tab.length - 2 && T > tab[i+1][0]) i++;
+  const [T0,P0] = tab[i], [T1,P1] = tab[i+1], f = (T - T0)/(T1 - T0);
+  return Math.exp(Math.log(P0) + f*(Math.log(P1) - Math.log(P0)));
+}
+function phaseAt(T, P){
+  const s = SUBS[sub], [Tt, Pt] = s.triple, [Tc, Pc] = s.crit;
+  const meltT = Tt + s.meltSlope*(P - Pt);  // melting temperature at pressure P (bar)
+  if (P >= Pt && T <= meltT) return 0;
+  if (P < Pt){ if (T <= Tt && P >= interpLog(s.solidGas, T)) return 0; if (T > Tt && P >= interpLog(s.liqGas, T)) return 1; return 2; }
+  if (T > Tc && P > Pc) return 3; // supercritical
+  if (T > Tc) return 2;
+  return P >= interpLog(s.liqGas, T) ? 1 : 2;
+}
+function pdRender(){
+  const s = SUBS[sub], T = +$('pdT').value, lP = +$('pdP').value, P = Math.pow(10, lP);
+  document.querySelectorAll('[data-sub]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.sub === sub)));
+  $('pdTOut').textContent = T.toFixed(1) + ' °C'; $('pdPOut').textContent = P >= 1 ? P.toPrecision(3) + ' bar' : (P*1000).toPrecision(3) + ' mbar';
+  const ph = phaseAt(T, P), names = s.phases.concat(['Supercritical fluid']);
+  // on a boundary if nearby points (within about 2% in pressure or 0.3 degrees) belong to different phases
+  const near = new Set([[1,0],[-1,0],[0,1],[0,-1]].map(([dt,dp]) => phaseAt(T + dt*0.3, P*Math.pow(10, dp*0.009))));
+  near.delete(3); near.add(ph === 3 ? 3 : ph);
+  const coex = [...near].filter(k => k !== 3).sort((x,y) => x-y);
+  $('pdV').textContent = coex.length >= 3 ? 'At the triple point: all three phases coexist.' : coex.length === 2 ? 'On the boundary: ' + names[coex[0]].replace(/ \(solid\)/,'') + ' and ' + (n => /^[A-Z][a-z]/.test(n) ? n[0].toLowerCase() + n.slice(1) : n)(names[coex[1]].replace(/ \(solid\)/,'')) + ' coexist in equilibrium.' : names[ph] + (ph === 3 ? ': above the critical point, liquid and gas are no longer distinct.' : '.');
+  $('pdStats').innerHTML = '<dt>Triple point</dt><dd>' + s.triple[0] + ' °C, ' + (s.triple[1] < 1 ? (s.triple[1]*1000).toFixed(2) + ' mbar' : s.triple[1] + ' bar') + '</dd><dt>Critical point</dt><dd>' + s.crit[0] + ' °C, ' + s.crit[1] + ' bar</dd>' + (T > s.triple[0] && T < s.crit[0] ? '<dt>Vapor pressure here</dt><dd>' + (interpLog(s.liqGas, T) >= 1 ? interpLog(s.liqGas, T).toPrecision(3) + ' bar' : (interpLog(s.liqGas, T)*1000).toPrecision(3) + ' mbar') + '</dd>' : '');
+  const c = pdCtx; if (!c) return;
+  const W=640, H=380, Tr = s.Tr, ax = axes(c, W, H, [56,16,16,40], Tr, [-4, 3], [], [-4,-3,-2,-1,0,1,2,3], [['temperature (°C)','s']], [['P','i'],['  (bar, log scale)','s']], null, pow10);
+  const step = (Tr[1]-Tr[0]) > 300 ? 100 : 20; c.fillStyle=C.muted; c.font='12px '+SANS; c.textAlign='center'; for (let v = Math.ceil(Tr[0]/step)*step; v <= Tr[1]; v += step) c.fillText(v, ax.X(v), H-24);
+  // shade regions by sampling
+  // shade each phase region: sample on a small grid, then scale the image up (no seams)
+  const hex = h => { const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec((h||'').trim()); return m ? [parseInt(m[1],16), parseInt(m[2],16), parseInt(m[3],16)] : [128,128,128]; };
+  const cols = [C.solid, C.liq, C.gas, C.acc].map(hex), bg = hex(C.surface), NX = 240, NY = 140;
+  pdOff.width = NX; pdOff.height = NY; const oc = pdOff.getContext('2d'), img = oc.createImageData(NX, NY);
+  for (let i=0;i<NX;i++) for (let j=0;j<NY;j++){ const TT = Tr[0] + (Tr[1]-Tr[0])*(i+0.5)/NX, lp = 3 - 7*(j+0.5)/NY, k = phaseAt(TT, Math.pow(10, lp)), col = cols[k], q = 4*(j*NX + i);
+    for (let m=0;m<3;m++) img.data[q+m] = Math.round(bg[m] + (col[m] - bg[m])*0.12); img.data[q+3] = 255; }
+  oc.putImageData(img, 0, 0); c.imageSmoothingEnabled = false; c.drawImage(pdOff, 56, 16, W-72, H-56); c.imageSmoothingEnabled = true;
+  // boundaries, clipped to the plot
+  c.save(); c.beginPath(); c.rect(56,16,W-72,H-56); c.clip();
+  c.strokeStyle=C.ink; c.lineWidth=2.4;
+  const line = (tab) => { c.beginPath(); tab.forEach(([TT,PP],i) => { i ? c.lineTo(ax.X(TT), ax.Y(Math.log10(PP))) : c.moveTo(ax.X(TT), ax.Y(Math.log10(PP))); }); c.stroke(); };
+  const sg = s.solidGas.filter(([TT]) => TT >= Tr[0]); if (sg.length > 1 || Tr[0] < s.solidGas[0][0]) { const first = Tr[0] < s.solidGas[0][0] ? [[Tr[0], interpLog(s.solidGas, Tr[0])]] : []; line(first.concat(s.solidGas)); }
+  line(s.liqGas);
+  c.beginPath(); for (let i=0;i<=40;i++){ const lp = Math.log10(s.triple[1]) + (3 - Math.log10(s.triple[1]))*i/40, PP = Math.pow(10, lp), TT = s.triple[0] + s.meltSlope*(PP - s.triple[1]); i ? c.lineTo(ax.X(TT), ax.Y(lp)) : c.moveTo(ax.X(TT), ax.Y(lp)); } c.stroke();
+  c.restore();
+  c.fillStyle=C.ink; [[s.triple,'triple point'],[s.crit,'critical point']].forEach(([[TT,PP],lab]) => { c.beginPath(); c.arc(ax.X(TT), ax.Y(Math.log10(PP)), 5, 0, 7); c.fill(); c.font='12px '+SANS; const right = ax.X(TT) > W - 120; c.textAlign = right ? 'right' : 'left'; c.fillText(lab, ax.X(TT) + (right ? -8 : 8), ax.Y(Math.log10(PP)) + (lab === 'triple point' ? 16 : -8)); });
+  // region labels
+  c.font='600 14px '+SANS; c.textAlign='center';
+  const lab = sub === 'h2o' ? [[-35,1.5,s.phases[0],C.solid],[60,1.5,s.phases[1],C.liq],[200,-2.5,s.phases[2],C.gas]] : [[-110,2,s.phases[0],C.solid],[0,2.3,s.phases[1],C.liq],[0,-1,s.phases[2],C.gas]];
+  lab.forEach(([TT,lp,t,col]) => { c.fillStyle = col; c.fillText(t, ax.X(TT), ax.Y(lp)); });
+  c.fillStyle=C.ink; c.beginPath(); c.arc(ax.X(T), ax.Y(lP), 7, 0, 7); c.fill(); c.strokeStyle=C.surface; c.lineWidth=2; c.stroke();
+  c.strokeStyle=C.muted; c.setLineDash([3,4]); c.lineWidth=1; c.beginPath(); c.moveTo(ax.X(Tr[0]), ax.Y(0.0057)); c.lineTo(ax.X(Tr[1]), ax.Y(0.0057)); c.stroke(); c.setLineDash([]);
+  c.fillStyle=C.muted; c.font='11px '+SANS; c.textAlign='right'; c.fillText('1 atm', ax.X(Tr[1])-4, ax.Y(0.0057)-4);
+}
+document.querySelectorAll('[data-sub]').forEach(b => b.addEventListener('click', () => { sub = b.dataset.sub; const s = SUBS[sub]; $('pdT').min = s.Tr[0]; $('pdT').max = s.Tr[1]; $('pdT').value = sub === 'h2o' ? 25 : -78.6; $('pdP').value = 0; pdRender(); }));
+['pdT','pdP'].forEach(id => $(id).addEventListener('input', pdRender));
+$('pdCanvas').addEventListener('click', e => { const r = e.currentTarget.getBoundingClientRect(), x = (e.clientX - r.left)/r.width*640, y = (e.clientY - r.top)/r.height*380, s = SUBS[sub];
+  const T = s.Tr[0] + (x - 56)/(640 - 72)*(s.Tr[1] - s.Tr[0]), lp = -4 + (380 - 40 - y)/(380 - 56)*7; if (T < s.Tr[0] || T > s.Tr[1] || lp < -4 || lp > 3) return;
+  $('pdT').value = T.toFixed(1); $('pdP').value = lp.toFixed(2); pdRender(); });
+
+/* ================= DIAMOND / GRAPHITE ================= */
+function dgRender(){
+  const T = +$('dgT').value, Vg = 5.31e-6, Vd = 3.42e-6, Sg = 5.74, Sd = 2.38, dG0 = 2900;
+  const Gg = P => Vg*P*1e8 - Sg*(T - 298), Gd = P => dG0 + Vd*P*1e8 - Sd*(T - 298); // P in kbar
+  const Px = (dG0 + (Sg - Sd)*(T - 298))/((Vg - Vd)*1e8);
+  $('dgTOut').textContent = T + ' K'; $('dgP').textContent = Px.toFixed(1) + ' kbar';
+  const c = dgCtx; if (!c) return;
+  const W=640, H=300, pmax = Math.max(25, Px*1.4), g0 = Math.min(Gg(0), Gd(0)), g1 = Math.max(Gg(pmax), Gd(pmax));
+  const ax = axes(c, W, H, [60,16,16,40], [0, pmax], [g0 - 500, g1 + 500], [0,5,10,15,20,25,30,35,40].filter(v => v <= pmax), [], [['P','i'],['  (kbar)','s']], [['G','i'],['  (per mole)','s']]);
+  c.lineWidth=2.6; [[Gg, C.res],[Gd, C.acc]].forEach(([f,col]) => { c.strokeStyle=col; c.beginPath(); c.moveTo(ax.X(0), ax.Y(f(0))); c.lineTo(ax.X(pmax), ax.Y(f(pmax))); c.stroke(); });
+  c.fillStyle=C.ink; c.beginPath(); c.arc(ax.X(Px), ax.Y(Gg(Px)), 6, 0, 7); c.fill();
+  c.fillStyle=C.muted; c.font='12px '+SANS; c.textAlign='left'; c.fillText('graphite more stable', ax.X(Px*0.35), ax.Y(Gg(Px*0.35)) + 20); c.textAlign='right'; c.fillText('diamond more stable', ax.X(pmax)-6, ax.Y(Gd(pmax)) + 28);
+  c.strokeStyle=C.muted; c.setLineDash([3,4]); c.beginPath(); c.moveTo(ax.X(0), ax.Y(Gd(0))); c.lineTo(ax.X(0)+40, ax.Y(Gd(0))); c.stroke(); c.setLineDash([]);
+  c.textAlign='left'; c.fillText(T === 298 ? 'ΔG = 2.9 kJ at 1 bar' : '', ax.X(0)+6, ax.Y(Gd(0)) - 6);
+}
+$('dgT').addEventListener('input', dgRender);
+
+/* ================= MAGNETIC PHASE DIAGRAMS ================= */
+function magRender(){
+  [[scCtx,'sc'],[fmCtx,'fm']].forEach(([c,k]) => { if (!c) return;
+    const W=440, H=280; c.clearRect(0,0,W,H); c.fillStyle=C.surface; c.fillRect(0,0,W,H);
+    const L = 50, B = 40, T0 = 30, x1 = W-20, y1 = H-B;
+    c.strokeStyle=C.muted; c.lineWidth=1.2; c.beginPath(); c.moveTo(L, T0); c.lineTo(L, y1); c.lineTo(x1, y1); c.stroke();
+    c.fillStyle=C.ink; c.font='600 13px '+SANS; c.textAlign='center'; c.fillText(k === 'sc' ? 'Type-I superconductor' : 'Ferromagnet', W/2, 18);
+    rich(c, x1, H-10, 14, [['T','i']], 'right');
+    c.save(); c.translate(16, (T0+y1)/2); c.rotate(-Math.PI/2); c.fillStyle=C.muted; c.font='12px '+SANS; c.textAlign='center'; c.fillText('external magnetic field', 0, 0); c.restore();
+    if (k === 'sc'){
+      const Tc = L + 0.75*(x1-L), Bc = T0 + 30; c.fillStyle=C.liq; c.globalAlpha=0.12; c.beginPath(); c.moveTo(L, y1); for (let i=0;i<=40;i++){ const f = i/40; c.lineTo(L + f*(Tc-L), y1 - (y1-Bc)*(1 - f*f)); } c.closePath(); c.fill(); c.globalAlpha=1;
+      c.strokeStyle=C.ink; c.lineWidth=2.4; c.beginPath(); for (let i=0;i<=40;i++){ const f = i/40; const x = L + f*(Tc-L), y = y1 - (y1-Bc)*(1 - f*f); i?c.lineTo(x,y):c.moveTo(x,y); } c.stroke();
+      c.fillStyle=C.ink; c.font='13px '+SANS; c.fillText('Normal', L + 0.7*(x1-L), T0 + 70); c.fillText('Super-', L + 0.3*(x1-L), y1 - 50); c.fillText('conducting', L + 0.3*(x1-L), y1 - 34);
+      c.fillStyle=C.muted; c.font='12px '+SANS; rich(c, L-6, Bc+4, 13, [['B','i'],['c','isub']], 'right'); rich(c, Tc, y1+16, 13, [['T','i'],['c','isub']], 'center');
+    } else {
+      const mid = (T0 + y1)/2, Tc = L + 0.65*(x1-L);
+      c.strokeStyle=C.ink; c.lineWidth=3; c.beginPath(); c.moveTo(L, mid); c.lineTo(Tc, mid); c.stroke();
+      c.strokeStyle=C.muted; c.lineWidth=1; c.setLineDash([3,4]); c.beginPath(); c.moveTo(Tc, mid); c.lineTo(x1, mid); c.stroke(); c.setLineDash([]);
+      c.fillStyle=C.surface; c.strokeStyle=C.ink; c.lineWidth=2; c.beginPath(); c.arc(Tc, mid, 5, 0, 7); c.fill(); c.stroke();
+      c.fillStyle=C.ink; c.font='13px '+SANS; c.fillText('Magnetized up', L + 0.35*(x1-L), mid - 40); c.fillText('Magnetized down', L + 0.35*(x1-L), mid + 50);
+      c.fillStyle=C.muted; c.font='12px '+SANS; c.fillText('critical point (Curie temperature)', Tc + 20, mid - 12); c.fillText('first-order jump across B = 0', L + 0.32*(x1-L), mid + 18);
+    }
+  });
+}
+
+/* ================= VAPOR PRESSURE FIT ================= */
+function vpRender(){
+  const L = +$('vpL').value*1000, R = 8.314, data = SUBS.h2o.liqGas;
+  $('vpLOut').textContent = (L/1000).toFixed(1) + ' kJ/mol';
+  // least-squares fit of ln P vs 1/T over 0 to 200 C
+  const pts = data.filter(([T]) => T <= 200).map(([T,P]) => [1/(T+273.15), Math.log(P)]);
+  const n = pts.length, sx = pts.reduce((a,p)=>a+p[0],0), sy = pts.reduce((a,p)=>a+p[1],0), sxx = pts.reduce((a,p)=>a+p[0]*p[0],0), sxy = pts.reduce((a,p)=>a+p[0]*p[1],0);
+  const slope = (n*sxy - sx*sy)/(n*sxx - sx*sx); $('vpFit').textContent = 'L ≈ ' + (-slope*R/1000).toFixed(1) + ' kJ/mol';
+  const c = vpCtx; if (!c) return;
+  const W=640, H=320, x0 = 1/(374+273.15), x1 = 1/(273.16);
+  const ax = axes(c, W, H, [56,16,16,40], [x0*1000, x1*1000], [-6, 6], [1.6,2,2.4,2.8,3.2,3.6].filter(v => v >= x0*1000 && v <= x1*1000), [-6,-4,-2,0,2,4,6], [['1000 / ','s'],['T','i'],['  (K⁻¹)','s']], [['ln','r'],[' (','s'],['P','i'],[' / bar)','s']], v => v.toFixed(1));
+  // line through 100 C
+  const lnP100 = Math.log(1.013), x100 = 1/373.15;
+  c.strokeStyle=C.hot; c.lineWidth=2.4; c.beginPath(); c.moveTo(ax.X(x0*1000), ax.Y(lnP100 - L/R*(x0 - x100))); c.lineTo(ax.X(x1*1000), ax.Y(lnP100 - L/R*(x1 - x100))); c.stroke();
+  data.forEach(([T,P]) => { c.fillStyle=C.liq; c.beginPath(); c.arc(ax.X(1000/(T+273.15)), ax.Y(Math.log(P)), 5, 0, 7); c.fill(); });
+  c.fillStyle=C.muted; c.font='12px '+SANS; c.textAlign='left'; c.fillText('374 °C (critical point)', ax.X(1000/(647.15))+10, ax.Y(Math.log(220.6))+18);
+  c.textAlign='right'; c.fillText('0.01 °C', ax.X(1000/273.16)-8, ax.Y(Math.log(0.00612))+4); c.fillText('100 °C', ax.X(1000/373.15)-8, ax.Y(Math.log(1.013))-8);
+}
+$('vpL').addEventListener('input', vpRender);
+
+/* ================= VAN DER WAALS ================= */
+const vdw = (v, t) => 8*t/(3*v - 1) - 3/(v*v);
+const Iv = (v, t) => (8*t/3)*Math.log(3*v - 1) + 3/v;           // integral of p dv
+const Gv = (v, t) => -(8*t/27)*Math.log(3*v - 1) + (8*t/27)/(3*v - 1) - (2/3)/v; // G/N in units of a/b, up to c(t)
+function spinodal(t){ // roots of 4 t v^3 = (3v - 1)^2, i.e. dp/dv = 0
+  if (t >= 1) return null; const g = v => 4*t*v*v*v - (3*v-1)*(3*v-1);
+  const bis = (a, b) => { for (let k=0;k<80;k++){ const m = (a+b)/2; (g(a)*g(m) <= 0) ? b = m : a = m; } return (a+b)/2; };
+  return [bis(1/3 + 1e-9, 1), bis(1, 100)];
+}
+function cubicRoots(pp, t){ // real roots of 3 p v^3 - (p + 8t) v^2 + 9 v - 3 = 0
+  const a = -(pp + 8*t)/(3*pp), b = 3/pp, c = -1/pp;
+  const Q = (a*a - 3*b)/9, R = (2*a*a*a - 9*a*b + 27*c)/54;
+  if (R*R < Q*Q*Q){ const th = Math.acos(R/Math.sqrt(Q*Q*Q)), s = -2*Math.sqrt(Q);
+    return [s*Math.cos(th/3) - a/3, s*Math.cos((th + 2*Math.PI)/3) - a/3, s*Math.cos((th - 2*Math.PI)/3) - a/3].sort((x,y) => x-y); }
+  const A = -Math.sign(R)*Math.cbrt(Math.abs(R) + Math.sqrt(R*R - Q*Q*Q)), B = A === 0 ? 0 : Q/A; return [A + B - a/3];
+}
+function maxwell(t){
+  const sp = spinodal(t); if (!sp) return null;
+  let lo = Math.max(vdw(sp[0], t), 1e-6), hi = vdw(sp[1], t);
+  for (let k=0;k<80;k++){ const m = (lo+hi)/2, r = cubicRoots(m, t); if (r.length < 3){ lo = m; continue; } const vl = r[0], vg = r[2];
+    const area = Iv(vg, t) - Iv(vl, t) - m*(vg - vl); area > 0 ? lo = m : hi = m; }
+  const p = (lo+hi)/2, r = cubicRoots(p, t); return {p, vl: r[0], vg: r[r.length-1], sp};
+}
+const VPC = []; for (let i=0;i<=120;i++){ const t = 0.5 + 0.5*i/120; if (t < 1){ const m = maxwell(t); if (m) VPC.push([t, m.p]); } } VPC.push([1, 1]);
+function vdwRender(){
+  const t = +$('vT').value, mx = $('vMx').checked, M = maxwell(t);
+  $('vTOut').textContent = t.toFixed(3);
+  if (M){ $('vP').textContent = M.p.toFixed(4); $('vVl').textContent = M.vl.toFixed(3); $('vVg').textContent = M.vg.toFixed(3);
+    // L = T dV dP/dT, in reduced units: P_c V_c = (3/8) N k T_c
+    const dt = 0.002, M2 = maxwell(Math.min(0.999, t + dt)), M1 = maxwell(t - dt), dpdt = M2 && M1 ? (M2.p - M1.p)/((Math.min(0.999, t + dt)) - (t - dt)) : NaN;
+    $('vL').textContent = isFinite(dpdt) ? (t*(M.vg - M.vl)*dpdt*3/8).toFixed(3) : '–'; }
+  else { ['vP','vVl','vVg','vL'].forEach(id => $(id).textContent = '—'); $('vL').textContent = t >= 1 ? '0 (no transition)' : '–'; }
+  // isotherm
+  let c = isoCtx; if (c){
+    const W=640, H=320, ax = axes(c, W, H, [48,16,16,40], [0.4, 4], [0, 1.6], [0.5,1,1.5,2,2.5,3,3.5,4], [0,0.4,0.8,1.2,1.6], [['V','i'],[' / ','r'],['V','i'],['c','isub']], [['P','i'],[' / ','r'],['P','i'],['c','isub']], v => String(v), v => String(v));
+    c.save(); c.beginPath(); c.rect(48,16,W-64,H-56); c.clip();
+    [0.85, 0.9, 0.95, 1.0, 1.05, 1.1].forEach(tt => { if (Math.abs(tt - t) < 1e-3) return; c.strokeStyle=C.res; c.globalAlpha=0.5; c.lineWidth=1; c.beginPath(); for (let i=0;i<=300;i++){ const v = 0.4 + 3.6*i/300; const y = ax.Y(vdw(v, tt)); i?c.lineTo(ax.X(v),y):c.moveTo(ax.X(v),y); } c.stroke(); c.globalAlpha=1; });
+    if (M && mx){
+      // equal areas
+      c.fillStyle=C.liq; c.globalAlpha=0.2; c.beginPath(); c.moveTo(ax.X(M.vl), ax.Y(M.p)); for (let i=0;i<=200;i++){ const v = M.vl + (M.vg - M.vl)*i/200; c.lineTo(ax.X(v), ax.Y(vdw(v, t))); } c.closePath(); c.fill(); c.globalAlpha=1;
+    }
+    const sp = M ? M.sp : null;
+    c.lineWidth=2.8;
+    for (let i=0;i<300;i++){ const v0 = 0.4 + 3.6*i/300, v1 = 0.4 + 3.6*(i+1)/300, vm = (v0+v1)/2; const unstable = sp && vm > sp[0] && vm < sp[1], meta = M && vm > M.vl && vm < M.vg && !unstable;
+      c.strokeStyle = unstable ? C.hot : C.acc; c.globalAlpha = (mx && M && vm > M.vl && vm < M.vg) ? 0.45 : 1; c.setLineDash(unstable ? [5,4] : []);
+      c.beginPath(); c.moveTo(ax.X(v0), ax.Y(vdw(v0, t))); c.lineTo(ax.X(v1), ax.Y(vdw(v1, t))); c.stroke(); }
+    c.setLineDash([]); c.globalAlpha=1;
+    if (M && mx){ c.strokeStyle=C.ink; c.lineWidth=2.8; c.beginPath(); c.moveTo(ax.X(M.vl), ax.Y(M.p)); c.lineTo(ax.X(M.vg), ax.Y(M.p)); c.stroke();
+      c.fillStyle=C.ink; [M.vl, M.vg].forEach(v => { c.beginPath(); c.arc(ax.X(v), ax.Y(M.p), 5, 0, 7); c.fill(); });
+      c.fillStyle=C.muted; c.font='12px '+SANS; c.textAlign='center'; c.fillText('liquid', ax.X(M.vl) - 2, ax.Y(M.p) + 20); c.fillText('gas', ax.X(M.vg), ax.Y(M.p) - 10); }
+    c.restore();
+    c.fillStyle=C.muted; c.font='12px '+SANS; c.textAlign='right'; c.fillText(M ? 'equal areas above and below the line' : 'no wiggle above T_c', W-24, 36);
+  }
+  // G(p)
+  c = gpCtx; if (c){
+    const W=440, H=300, vs = []; for (let i=0;i<=600;i++) vs.push(0.42 + (6 - 0.42)*Math.pow(i/600, 2));
+    const pts = vs.map(v => [vdw(v, t), Gv(v, t)]).filter(([p]) => p > 0.2 && p < 1.4);
+    if (pts.length){
+      let gmin = Infinity, gmax = -Infinity; pts.forEach(([,g]) => { gmin = Math.min(gmin, g); gmax = Math.max(gmax, g); }); const pad = (gmax - gmin)*0.08 || 0.01;
+      const ax = axes(c, W, H, [30,16,14,40], [0.2, 1.4], [gmin - pad, gmax + pad], [0.4,0.6,0.8,1,1.2], [], [['P','i'],[' / ','r'],['P','i'],['c','isub']], [['G','i']], v => String(v));
+      const sp = M ? M.sp : null;
+      for (let i=0;i<vs.length-1;i++){ const v = (vs[i]+vs[i+1])/2, p0 = vdw(vs[i], t), p1 = vdw(vs[i+1], t); if (p0 < 0.2 || p0 > 1.4 || p1 < 0.2 || p1 > 1.4) continue;
+        const unstable = sp && v > sp[0] && v < sp[1]; c.strokeStyle = unstable ? C.hot : C.acc; c.setLineDash(unstable ? [5,4] : []); c.lineWidth = 2.4;
+        c.beginPath(); c.moveTo(ax.X(p0), ax.Y(Gv(vs[i], t))); c.lineTo(ax.X(p1), ax.Y(Gv(vs[i+1], t))); c.stroke(); }
+      c.setLineDash([]);
+      if (M){ c.fillStyle=C.ink; c.beginPath(); c.arc(ax.X(M.p), ax.Y(Gv(M.vg, t)), 5, 0, 7); c.fill(); c.fillStyle=C.muted; c.font='12px '+SANS; c.textAlign='left'; c.fillText('crossing: transition', ax.X(M.p)+8, ax.Y(Gv(M.vg, t)) + 16); }
+      c.fillStyle=C.muted; c.font='11px '+SANS; c.textAlign='left'; c.fillText('gas branch', 36, H-48); c.textAlign='right'; c.fillText('liquid branch', W-18, 34);
+    }
+  }
+  // phase boundary
+  c = ptCtx; if (c){
+    const W=440, H=300, ax = axes(c, W, H, [40,16,14,40], [0.5, 1.15], [0, 1.4], [0.6,0.8,1], [0,0.5,1], [['T','i'],[' / ','r'],['T','i'],['c','isub']], [['P','i'],[' / ','r'],['P','i'],['c','isub']], v => String(v), v => String(v));
+    c.strokeStyle=C.ink; c.lineWidth=2.4; c.beginPath(); VPC.forEach(([tt,pp],i) => { i ? c.lineTo(ax.X(tt), ax.Y(pp)) : c.moveTo(ax.X(tt), ax.Y(pp)); }); c.stroke();
+    c.fillStyle=C.surface; c.strokeStyle=C.ink; c.lineWidth=2; c.beginPath(); c.arc(ax.X(1), ax.Y(1), 5, 0, 7); c.fill(); c.stroke();
+    c.fillStyle=C.muted; c.font='12px '+SANS; c.textAlign='left'; c.fillText('critical point', ax.X(1)-60, ax.Y(1)-12); c.fillText('liquid', ax.X(0.62), ax.Y(0.55)); c.fillText('gas', ax.X(0.9), ax.Y(0.25));
+    if (M){ c.fillStyle=C.acc; c.beginPath(); c.arc(ax.X(t), ax.Y(M.p), 6, 0, 7); c.fill(); }
+    c.strokeStyle=C.acc; c.globalAlpha=0.4; c.lineWidth=1; c.beginPath(); c.moveTo(ax.X(t), 16); c.lineTo(ax.X(t), H-40); c.stroke(); c.globalAlpha=1;
+  }
+}
+['vT','vMx'].forEach(id => $(id).addEventListener('input', vdwRender));
+
+/* ================= LOG-LOG CRITICAL EXPONENT ================= */
+const LL = []; for (let k=0;k<=24;k++){ const e = -4 + 3.4*k/24, t = 1 - Math.pow(10, e); const M = maxwell(t); if (M) LL.push([e, Math.log10(M.vg - M.vl)]); }
+function llRender(){
+  const c = llCtx; if (!c) return;
+  const close = LL.filter(([e]) => e <= -3), sl = close.length > 1 ? (close[close.length-1][1] - close[0][1])/(close[close.length-1][0] - close[0][0]) : NaN;
+  $('llS').textContent = sl.toFixed(3);
+  const W=640, H=320, ax = axes(c, W, H, [56,16,16,40], [-4.2, -0.4], [-2.2, 0.8], [-4,-3,-2,-1], [-2,-1,0], [['1 − ','s'],['T','i'],['/','r'],['T','i'],['c','isub'],['  (log scale)','s']], [['ΔV','i'],[' / ','r'],['V','i'],['c','isub']], pow10, pow10);
+  c.strokeStyle=C.hot; c.lineWidth=2; c.setLineDash([6,4]); c.beginPath(); c.moveTo(ax.X(-4.2), ax.Y(Math.log10(4) + 0.5*-4.2)); c.lineTo(ax.X(-0.4), ax.Y(Math.log10(4) + 0.5*-0.4)); c.stroke(); c.setLineDash([]);
+  LL.forEach(([e,l]) => { c.fillStyle=C.acc; c.beginPath(); c.arc(ax.X(e), ax.Y(l), 4.5, 0, 7); c.fill(); });
+  c.fillStyle=C.muted; c.font='12px '+SANS; c.textAlign='left'; c.fillText('slope 1/2', ax.X(-2.2), ax.Y(Math.log10(4) - 1.1) + 26);
+}
+
+/* ================= LAYOUT ================= */
+let pdCtx, dgCtx, scCtx, fmCtx, vpCtx, isoCtx, gpCtx, ptCtx, llCtx;
+function layout(){
+  pdCtx = fit($('pdCanvas'), 640, 380); dgCtx = fit($('dgCanvas'), 640, 300); scCtx = fit($('scCanvas'), 440, 280); fmCtx = fit($('fmCanvas'), 440, 280);
+  vpCtx = fit($('vpCanvas'), 640, 320); isoCtx = fit($('isoCanvas'), 640, 320); gpCtx = fit($('gpCanvas'), 440, 300); ptCtx = fit($('ptCanvas'), 440, 300); llCtx = fit($('llCanvas'), 640, 320);
+  redrawAll();
+}
+function redrawAll(){ pdRender(); dgRender(); magRender(); vpRender(); vdwRender(); llRender(); }
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(layout, 80); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { readColors(); redrawAll(); });
+layout();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(redrawAll);
+})();
+</script>
+</body>
+</html>
